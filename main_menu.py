@@ -1,6 +1,5 @@
 import streamlit as st
-
-from src.utils import apply_base_style, load_data
+from src.utils import apply_base_style, load_data, init_session_states
 
 
 st.container(height=20)

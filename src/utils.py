@@ -22,48 +22,81 @@ def load_data(path):
         .drop_nulls()
     )
     return df
-    
-
-# @st.cache_data
-# def load_unique_state_names():
-#     print('loading unique state names...')
-#     return (
-#         pl.scan_parquet('data/state_data.parquet')
-#         .unique('name')
-#         .sort(by=['sex', 'name'])
-#         .select("name")
-#         .collect(engine='streaming')
-#         .get_column('name')
-#         .to_list()
-#     )
 
 
-# @st.cache_data
-# def load_unique_national_names():
-#     print('loading unique national names...')
-#     return (
-#         pl.scan_parquet('data/national_data.parquet')
-#         .unique('name')
-#         .sort(by=['sex', 'name'])
-#         .select("name")
-#         .collect(engine='streaming')
-#         .get_column('name')
-#         .to_list()
-#     )
+@st.cache_data
+def load_unique_organizations(df: pl.DataFrame):
+    print('loading unique organization names...')
+    return (
+        df
+        .select(pl.col('organization_name').unique())
+        .sort('organization_name')
+        .get_column('organization_name')
+        .to_list()
+    )
 
 
-# def init_session_states():
-#     if 'year_range' not in st.session_state:
-#         st.session_state.year_range = (1910, 2024)
-    
-#     if 'names_filter_multi' not in st.session_state:
-#         st.session_state.names_filter_multi = ['John - M', 'Mary - F']
+@st.cache_data
+def load_unique_loan_types(df: pl.DataFrame):
+    print('loading unique loan types...')
+    return (
+        df
+        .select(pl.col('loan_type').unique())
+        .sort('loan_type')
+        .get_column('loan_type')
+        .to_list()
+    )
 
-#     if 'names_filter_single' not in st.session_state:
-#         st.session_state.names_filter_single = 'Emmaline - F'
 
-#     if 'sex' not in st.session_state:
-#         st.session_state.sex = 'M'
+@st.cache_data
+def load_unique_property_types(df: pl.DataFrame):
+    print('loading unique property types...')
+    return (
+        df
+        .select(pl.col('property_type').unique())
+        .sort('property_type')
+        .get_column('property_type')
+        .to_list()
+    )
+
+
+@st.cache_data
+def load_unique_qc_versions(df: pl.DataFrame):
+    print('loading unique QC versions...')
+    return (
+        df
+        .select(pl.col('qc_versions').unique())
+        .sort('qc_versions')
+        .get_column('qc_versions')
+        .to_list()
+    )
+
+
+@st.cache_data
+def load_unique_qc_versions(df: pl.DataFrame):
+    print('loading unique QC versions...')
+    return (
+        df
+        .select(pl.col('qc_versions').unique())
+        .sort('qc_versions')
+        .get_column('qc_versions')
+        .to_list()
+    )
+
+
+
+def init_session_states():
+    if 'organization_selection' not in st.session_state:
+        st.session_state['organization_selection'] = ['Delta Appraisal', 'Forest Appraisal', 'Horizon Appraisal', 'Ocean Appraisal', 'River Appraisal']
+
+    if 'loan_type_selection' not in st.session_state:
+        st.session_state['loan_type_selection'] = '- All -'
+
+    if 'property_type_selection' not in st.session_state:
+        st.session_state['property_type_selection'] = '- All -'
+
+    if 'qc_version_selection' not in st.session_state:
+        st.session_state['qc_version_selection'] = 1
 
 
 def apply_base_style():
