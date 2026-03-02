@@ -35,14 +35,6 @@ with main_tab:
         with loan_col:
             widgets.loan_type_filter()
 
-    with st.container(key="table_section"):
-        title_col, view_col = st.columns([2.6, 1.4], vertical_alignment="center")
-        with title_col:
-            st.markdown("#### Table View")
-            st.caption("Switch between summarized metrics and full record detail.")
-        with view_col:
-            widgets.table_view_radio()
-        display_table()
 
     with st.container(key="timeseries_section"):
         st.markdown("#### Time Series")
@@ -64,6 +56,18 @@ with main_tab:
             st.session_state['time_series_chart_selection'] = time_series_chart_selection['selection']['box'][0]['x']
         except:
             st.session_state['time_series_chart_selection'] = None
+
+
+    with st.container(key="table_section"):
+        title_col, view_col = st.columns([2.6, 1.4], vertical_alignment="center")
+        with title_col:
+            st.markdown("#### Table View")
+            st.caption("Switch between summarized metrics and full record detail.")
+        with view_col:
+            widgets.table_view_radio()
+        display_table()
+
+
 
 
 with dist_tab:
