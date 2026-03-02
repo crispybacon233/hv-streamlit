@@ -5,7 +5,7 @@ sys.path.append('apps/main_dashboard')
 
 from src.utils import load_data, apply_base_style, init_session_states
 import widgets as widgets
-from visuals import distributions, time_series, display_table
+from visuals import distributions, time_series, display_table, revision_rate
 
 
 
@@ -42,7 +42,7 @@ with main_tab:
             st.caption("Switch between summarized metrics and full record detail.")
         with view_col:
             widgets.table_view_radio()
-        display_table(df)
+        display_table()
 
     with st.container(key="timeseries_section"):
         st.markdown("#### Time Series")
@@ -60,11 +60,14 @@ with main_tab:
             on_select='rerun',
             selection_mode='box',
         )
-    if time_series_chart_selection.get('selection', {}).get('box'):
-        st.session_state['time_series_chart_selection'] = time_series_chart_selection['selection']['box'][0]['x']
+        try:
+            st.session_state['time_series_chart_selection'] = time_series_chart_selection['selection']['box'][0]['x']
+        except:
+            st.session_state['time_series_chart_selection'] = None
 
 
 with dist_tab:
+
     st.markdown("### Distribution Analysis")
     st.markdown(
         "<p class='dashboard-subtitle'>Review metric spread by organization and segment the distributions with facet controls.</p>",
@@ -89,6 +92,11 @@ with dist_tab:
         st.caption("Histogram and box summary update live from the selected controls.")
         fig = distributions(df)
         st.plotly_chart(fig, use_container_width=True)
-
+    
+    with st.container(key="revision_rate_section"):
+        st.markdown("#### Revision Rate")
+        st.caption("Count of QC revisions by organization. Facet by loan or property type to find patterns in revision occurrence.")
+        revision_rate_fig = revision_rate()
+        st.plotly_chart(revision_rate_fig, use_container_width=True)
 
 

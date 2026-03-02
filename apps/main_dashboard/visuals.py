@@ -6,6 +6,7 @@ sys.path.append('apps/main_dashboard')
 import local_pipes
 from local_pipes import filter_organization, filter_property_type, filter_loan_type
 from datetime import datetime
+from src.utils import load_data
 
 
 PLOT_FONT_FAMILY = "IBM Plex Sans, Avenir Next, Segoe UI, sans-serif"
@@ -100,7 +101,7 @@ def distributions(df):
         color_discrete_map=_color_map,
         facet_row=st.session_state['facet_selection_y'] if st.session_state['facet_selection_y'] else None,
         facet_col=st.session_state['facet_selection_x'] if st.session_state['facet_selection_x'] else None,
-        height=760,
+        height=800,
         opacity=1,
         nbins=st.session_state['nbins_selection'],
         title=title
@@ -114,6 +115,36 @@ def distributions(df):
 
 
     return _fig
+
+
+def revision_rate():
+    df = load_data('data/analyst_challenge_data.csv')
+    temp_df = (
+        df
+        .with_columns(
+            pl.col('revision_exists').cast(pl.Int64).alias('revisions')
+        )
+        .sort('organization_name')
+    )
+
+    fig = px.histogram(
+        temp_df,
+        x='organization_name',
+        y='revisions',
+        color='organization_name',
+        facet_col=st.session_state['facet_selection_x'] if st.session_state['facet_selection_x'] else None,
+        title="Revision Count by Organization",
+        histfunc='sum',
+        height=650
+    )
+
+    fig.for_each_annotation(lambda _a: _a.update(text=_a.text.split("=")[-1]))
+
+    fig.update_traces(marker_line_width=0) 
+
+    apply_chart_style(fig, yaxis_title="Revision Count")
+
+    return fig
 
 
 def time_series(df):
@@ -131,14 +162,48 @@ def time_series(df):
         return df.filter(pl.col('qc_versions') == qc_version)
     
 
+    def filter_property_type(df: pl.DataFrame, property_type: str) -> pl.DataFrame:
+        """
+        Filters the DataFrame based on the selected property type.
+        Parameters:
+            df (pl.DataFrame): The input DataFrame.
+            property_type (str): The selected property type to filter by. If '- All -', returns the original DataFrame.
+        Returns:
+            pl.DataFrame: A filtered DataFrame based on the selected property type.
+        """
+        if property_type == '- All -':
+            return df
+        else:
+            return df.filter(pl.col('property_type') == property_type)
+        
+
+    def filter_loan_type(df: pl.DataFrame, loan_type: str) -> pl.DataFrame:
+        """
+        Filters the DataFrame based on the selected loan type.
+        Parameters:
+            df (pl.DataFrame): The input DataFrame.
+            loan_type (str): The selected loan type to filter by. If '- All -', returns the original DataFrame.
+        Returns:
+            pl.DataFrame: A filtered DataFrame based on the selected loan type.
+        """
+        if loan_type == '- All -':
+            return df
+        else:
+            return df.filter(pl.col('loan_type') == loan_type)
+    
+
     organization_selection = st.session_state['organization_selection']
     qc_version = st.session_state['qc_version_selection']
+    property_type = st.session_state['property_type_selection']
+    loan_type = st.session_state['loan_type_selection']
     metric = st.session_state['metric_selection']
     window_size = st.session_state['window_size_selection']
 
     _plot_df = (
         df
+        .pipe(filter_property_type, property_type)
         # .pipe(filter_qc_versions, qc_version)
+        .pipe(filter_loan_type, loan_type)
         .filter(pl.col('organization_name') ==organization_selection)
         .group_by('organization_name', 'created_at')
         .agg(pl.col(metric).mean())
@@ -215,7 +280,8 @@ def time_series(df):
     return _fig_slope
 
 
-def display_table(df, time_series_chart_selection=None):
+def display_table(time_series_chart_selection=None):
+    df = load_data('data/analyst_challenge_data.csv')
 
     def filter_dates(df, time_series_chart_selection):
         if time_series_chart_selection is not None:
@@ -247,6 +313,7 @@ def display_table(df, time_series_chart_selection=None):
             pl.col('minutes_in_queue').mean().round(2).alias('Avg Minutes in Queue'),
             pl.col('minutes_cycle_time').mean().round(2).alias('Avg Minutes Cycle Time'),
             pl.col('rules_run').mean().round(2).alias('Avg Rules Run'),
+            (pl.col('revision_exists').sum() / pl.len() * 100.0).round(2).alias('Revision Rate (%)'),    
             pl.len().alias('Count')
         )
         .sort(by='Avg Minutes in Review', descending=True)
