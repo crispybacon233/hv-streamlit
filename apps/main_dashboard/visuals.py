@@ -90,6 +90,8 @@ def distributions(df):
     _palette = px.colors.qualitative.Plotly
     _color_map = { _org: _palette[_i % len(_palette)] for _i, _org in enumerate(_orgs) }
 
+    title = st.session_state['metric_selection'].replace('_', ' ').title()
+
     _fig = px.histogram(
         _temp_df,
         x=st.session_state['metric_selection'],
@@ -101,6 +103,7 @@ def distributions(df):
         height=760,
         opacity=1,
         nbins=st.session_state['nbins_selection'],
+        title=title
     )
 
     # Change "property_type=Townhouse" -> "Townhouse"
