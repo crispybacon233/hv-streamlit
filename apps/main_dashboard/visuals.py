@@ -5,7 +5,7 @@ import sys
 sys.path.append('apps/main_dashboard')
 import local_pipes
 from local_pipes import filter_organization, filter_property_type, filter_loan_type
-from datetime import datetime
+from datetime import datetime, timedelta
 from src.utils import load_data
 
 
@@ -222,6 +222,7 @@ def time_series(df):
         )
         .drop_nulls()
         .sort('organization_name')
+
     )
 
     slope_df = pl.concat([
@@ -282,15 +283,45 @@ def time_series(df):
 
 def display_table(time_series_chart_selection=None):
     df = load_data('data/analyst_challenge_data.csv')
+    FMTS = (
+        "%Y-%m-%d %H:%M:%S.%f",  # 2025-09-17 00:31:30.123456
+        "%Y-%m-%d %H:%M:%S",     # 2025-09-17 00:31:30
+        "%Y-%m-%d %H:%M",        # 2025-06-21 06:56
+        "%Y-%m-%d",              # 2025-07-17
+    )
+    def parse_dt(x) -> datetime:
+        # If the widget sometimes returns actual date/datetime objects, handle them too:
+        if isinstance(x, datetime):
+            return x
+        # datetime.date (but not datetime itself)
+        if hasattr(x, "year") and hasattr(x, "month") and hasattr(x, "day") and not isinstance(x, str):
+            return datetime(x.year, x.month, x.day)
+
+        s = str(x)
+        for fmt in FMTS:
+            try:
+                return datetime.strptime(s, fmt)
+            except ValueError:
+                pass
+        raise ValueError(f"Unrecognized datetime format: {s!r}")
+
+    def is_date_only(x) -> bool:
+        # "YYYY-MM-DD"
+        return isinstance(x, str) and len(x) == 10
 
     def filter_dates(df, time_series_chart_selection):
-        if time_series_chart_selection is not None:
-            start_date, end_date = time_series_chart_selection
-            start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").date()
-            end_date = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S.%f").date()
-            return df.filter(pl.col('created_at').is_between(start_date, end_date))
-        else:
+        if not time_series_chart_selection:
             return df
+
+        start_raw, end_raw = time_series_chart_selection
+        start_dt = parse_dt(start_raw)
+        end_dt = parse_dt(end_raw)
+
+        # If end is date-only, include the whole day
+        if is_date_only(end_raw):
+            end_dt = end_dt + timedelta(days=1) - timedelta(microseconds=1)
+
+        return df.filter(pl.col("created_at").is_between(start_dt, end_dt))
     
     raw_table = (
         df
