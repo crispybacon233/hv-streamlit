@@ -1,13 +1,64 @@
 import streamlit as st
 import polars as pl
 import plotly.express as px
-import plotly.figure_factory as ff
-from typing import List
 import sys
 sys.path.append('apps/main_dashboard')
 import local_pipes
 from local_pipes import filter_organization, filter_property_type, filter_loan_type
 from datetime import datetime
+
+
+PLOT_FONT_FAMILY = "IBM Plex Sans, Avenir Next, Segoe UI, sans-serif"
+PLOT_GRID_COLOR = "#e5e7eb"
+PLOT_AXIS_COLOR = "#cbd5e1"
+PLOT_TEXT_COLOR = "#111827"
+PLOT_MUTED_TEXT = "#475569"
+
+
+def apply_chart_style(fig, *, yaxis_title: str, height: int | None = None, x_grid: bool = False):
+    fig.update_layout(
+        template="plotly_white",
+        showlegend=True,
+        font=dict(family=PLOT_FONT_FAMILY, size=13, color=PLOT_TEXT_COLOR),
+        title=dict(x=0.0, xanchor="left", font=dict(size=20, color=PLOT_TEXT_COLOR)),
+        legend=dict(
+            title_text="Organization",
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1.0,
+            bgcolor="rgba(255, 255, 255, 0.85)",
+            bordercolor=PLOT_GRID_COLOR,
+            borderwidth=1,
+        ),
+        margin=dict(t=74, r=24, l=56, b=56),
+        hovermode="x unified",
+        yaxis_title=yaxis_title,
+    )
+
+    if height is not None:
+        fig.update_layout(height=height)
+
+    fig.update_xaxes(
+        showline=True,
+        linecolor=PLOT_AXIS_COLOR,
+        gridcolor=PLOT_GRID_COLOR,
+        showgrid=x_grid,
+        zeroline=False,
+        tickfont=dict(color=PLOT_MUTED_TEXT),
+        title_font=dict(color=PLOT_MUTED_TEXT),
+    )
+    fig.update_yaxes(
+        showline=True,
+        linecolor=PLOT_AXIS_COLOR,
+        gridcolor=PLOT_GRID_COLOR,
+        zeroline=False,
+        tickfont=dict(color=PLOT_MUTED_TEXT),
+        title_font=dict(color=PLOT_MUTED_TEXT),
+    )
+
+    return fig
 
 
 
@@ -47,7 +98,7 @@ def distributions(df):
         color_discrete_map=_color_map,
         facet_row=st.session_state['facet_selection_y'] if st.session_state['facet_selection_y'] else None,
         facet_col=st.session_state['facet_selection_x'] if st.session_state['facet_selection_x'] else None,
-        height=800,
+        height=760,
         opacity=1,
         nbins=st.session_state['nbins_selection'],
     )
@@ -55,12 +106,8 @@ def distributions(df):
     # Change "property_type=Townhouse" -> "Townhouse"
     _fig.for_each_annotation(lambda _a: _a.update(text=_a.text.split("=")[-1]))
 
-    _fig.update_layout(
-        template="simple_white",
-        showlegend=True,
-        bargap=0,
-        margin=dict(t=60, r=20, l=60, b=60),
-    )
+    _fig.update_layout(bargap=0.03)
+    apply_chart_style(_fig, yaxis_title="Count", height=760, x_grid=True)
 
 
     return _fig
@@ -143,17 +190,11 @@ def time_series(df):
         y=_plot_df[metric],
         mode="lines",
         name="Raw",
-        line=dict(color="lightgray", width=2),
+        line=dict(color="#cbd5e1", width=2),
         opacity=0.75,
     )
 
-    _fig.update_layout(
-        template="plotly",
-        showlegend=True,
-        bargap=0.2,
-        margin=dict(t=60, r=20, l=60, b=60),
-        yaxis_title=metric.replace('_', ' ').title(),
-    )
+    apply_chart_style(_fig, yaxis_title=metric.replace('_', ' ').title())
 
     _fig_slope = px.line(
         slope_df, 
@@ -164,13 +205,7 @@ def time_series(df):
         title=_title
     )
 
-    _fig_slope.update_layout(
-        template="plotly",
-        showlegend=True,
-        bargap=0.2,
-        margin=dict(t=60, r=20, l=60, b=60),
-        yaxis_title=metric.replace('_', ' ').title(),
-    )
+    apply_chart_style(_fig_slope, yaxis_title=metric.replace('_', ' ').title())
 
     if st.session_state['time_series_radio_selection'] == 'Line Chart':
         return _fig
