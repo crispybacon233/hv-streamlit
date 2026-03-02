@@ -15,7 +15,7 @@ def filter_organization(df: pl.DataFrame, organization_name: str) -> pl.DataFram
     if organization_name == '- All -':
         return df
     else:
-        return df.filter(pl.col('organization_name').is_in(organization_name))
+        return df.filter(pl.col('organization_name') == (organization_name))
 
 
 def filter_property_type(df: pl.DataFrame, property_type: str) -> pl.DataFrame:

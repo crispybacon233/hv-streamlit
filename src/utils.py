@@ -10,6 +10,7 @@ def load_data(path):
     df = (
         pl.read_csv(path)
         .pipe(cast_date_to_timestamp, 'created_at')
+        .with_columns(pl.col("created_at").cast(pl.Date))
         .pipe(cast_to_boolean, 'revision_exists')
         .pipe(cast_to_boolean, 'lender_revision_exists')
         .pipe(check_minutes, 'minutes_cycle_time')
@@ -84,19 +85,30 @@ def load_unique_qc_versions(df: pl.DataFrame):
     )
 
 
+DEFAULTS = {
+    "organization_selection": 'Delta Appraisal',
+    "loan_type_selection": "- All -",
+    "property_type_selection": "- All -",
+    "qc_version_selection": 1,
+    "facet_selection_x": None,
+    "facet_selection_y": None,
+    "table_view_selection": "Aggregated Metrics",
+    "metric_selection": "minutes_in_review_v1",
+    'time_series_radio_selection': 'Line Chart',
+    'time_series_chart_selection': None,
+}
 
 def init_session_states():
-    if 'organization_selection' not in st.session_state:
-        st.session_state['organization_selection'] = ['Delta Appraisal', 'Forest Appraisal', 'Horizon Appraisal', 'Ocean Appraisal', 'River Appraisal']
+    for k, v in DEFAULTS.items():
+        st.session_state.setdefault(k, v)
 
-    if 'loan_type_selection' not in st.session_state:
-        st.session_state['loan_type_selection'] = '- All -'
+def reset_session_states():
+    _ = [
+        st.session_state.pop(k, None)
+        for k in list(st.session_state.keys())
+    ]
+    st.rerun()
 
-    if 'property_type_selection' not in st.session_state:
-        st.session_state['property_type_selection'] = '- All -'
-
-    if 'qc_version_selection' not in st.session_state:
-        st.session_state['qc_version_selection'] = 1
 
 
 def apply_base_style():
